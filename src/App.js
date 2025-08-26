@@ -5,28 +5,14 @@ import NotesList from './components/NotesList';
 import Search from './components/Search';
 import Header from './components/Header';
 const App = () => {
-  const [notes, setNotes] = useState([
-  {
-    id: nanoid(),
-    text: "This is my first note!",
-    date: "02/14/2022"
-  },
-  {
-    id: nanoid(),
-    text: "This is my second note!",
-    date: "02/10/2022"
-  },
-  {
-    id: nanoid(),
-    text: "This is my third note!",
-    date: "02/12/2022"
-  },
-]);
+  const [notes, setNotes] = useState([]);
 
 const [searchText, setSearchText] = useState('');
 const [darkMode, setDarkMode] = useState(false);
 const [isLoading, setIsLoading] = useState(true);
 const [error, setError] = useState(null);
+const [sortBy, setSortBy] = useState('date'); // 'date', 'title', 'category'
+const [selectedCategory, setSelectedCategory] = useState('All');
 
 useEffect(() => {
   try {
@@ -54,12 +40,15 @@ useEffect(() => {
   }
 }, [notes]);
 
-const addNote = useCallback((text) => {
+const addNote = useCallback((title, text, category = 'Personal') => {
   const date = new Date();
   const newNote = {
     id: nanoid(),
+    title: title,
     text: text,
-    date: date.toLocaleDateString()
+    date: date.toLocaleDateString(),
+    category: category,
+    isPinned: false
   }
   const newNotes = [...notes, newNote];
   setNotes(newNotes);
@@ -69,6 +58,54 @@ const deleteNote = useCallback((id) => {
   const newNotes = notes.filter((note)=> note.id !== id);
   setNotes(newNotes);
 }, [notes]);
+
+const togglePinNote = useCallback((id) => {
+  const newNotes = notes.map((note) => 
+    note.id === id ? { ...note, isPinned: !note.isPinned } : note
+  );
+  setNotes(newNotes);
+}, [notes]);
+
+const updateNoteCategory = useCallback((id, category) => {
+  const newNotes = notes.map((note) => 
+    note.id === id ? { ...note, category: category } : note
+  );
+  setNotes(newNotes);
+}, [notes]);
+
+const getFilteredAndSortedNotes = useCallback(() => {
+  let filteredNotes = notes.filter((note) => 
+    note.text.toLowerCase().includes(searchText.toLowerCase()) ||
+    note.title.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  // Filter by category
+  if (selectedCategory !== 'All') {
+    filteredNotes = filteredNotes.filter((note) => 
+      note.category === selectedCategory
+    );
+  }
+
+  // Sort notes (pinned notes always come first)
+  const pinnedNotes = filteredNotes.filter(note => note.isPinned);
+  const unpinnedNotes = filteredNotes.filter(note => !note.isPinned);
+
+  const sortNotes = (notesToSort) => {
+    return notesToSort.sort((a, b) => {
+      switch (sortBy) {
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'category':
+          return a.category.localeCompare(b.category);
+        case 'date':
+        default:
+          return new Date(b.date) - new Date(a.date);
+      }
+    });
+  };
+
+  return [...sortNotes(pinnedNotes), ...sortNotes(unpinnedNotes)];
+}, [notes, searchText, selectedCategory, sortBy]);
 
   return ( 
     <div className={`${darkMode && 'dark-mode'}`}>
@@ -87,11 +124,15 @@ const deleteNote = useCallback((id) => {
         <div className="loading">Loading notes...</div>
       ) : (
         <NotesList 
-          notes={notes.filter((note)=> 
-            note.text.toLowerCase().includes(searchText.toLowerCase())
-            )} 
+          notes={getFilteredAndSortedNotes()}
           handleAddNote={addNote}
           handleDeleteNote={deleteNote}
+          handleTogglePin={togglePinNote}
+          handleUpdateCategory={updateNoteCategory}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
         />
       )}
       </div>
