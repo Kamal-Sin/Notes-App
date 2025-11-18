@@ -112,6 +112,12 @@ code {
   color: #333;
 }
 
+.textarea-container {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+
 textarea {
   border: none;
   resize: none;
@@ -119,10 +125,107 @@ textarea {
   font-family: inherit;
   font-size: 1rem;
   color: inherit;
+  flex: 1;
+  padding-right: 40px;
 }
 
 textarea:focus {
   outline: none;
+}
+
+.voice-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 20px;
+  color: #333;
+  z-index: 1;
+}
+
+.voice-button:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.1);
+}
+
+.voice-button.listening {
+  background-color: #ff4444;
+  color: white;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+  }
+}
+
+.dark-mode .voice-button {
+  background-color: rgba(45, 45, 45, 0.8);
+  color: #ffffff;
+}
+
+.dark-mode .voice-button:hover {
+  background-color: rgba(45, 45, 45, 1);
+}
+
+.dark-mode .voice-button.listening {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.voice-error-message {
+  position: absolute;
+  bottom: -25px;
+  left: 0;
+  right: 0;
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-align: center;
+  z-index: 2;
+  border: 1px solid #ffcdd2;
+}
+
+.dark-mode .voice-error-message {
+  background-color: #3e2723;
+  color: #ff8a80;
+  border-color: #5d4037;
+}
+
+.interim-text {
+  position: absolute;
+  bottom: -25px;
+  left: 0;
+  right: 0;
+  background-color: rgba(103, 215, 204, 0.2);
+  color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-style: italic;
+  z-index: 2;
+  border: 1px solid rgba(103, 215, 204, 0.4);
+}
+
+.dark-mode .interim-text {
+  background-color: rgba(103, 215, 204, 0.15);
+  color: #ccc;
+  border-color: rgba(103, 215, 204, 0.3);
 }
 
 /* Notes Container and Controls */
