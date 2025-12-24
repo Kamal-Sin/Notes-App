@@ -628,14 +628,21 @@ textarea:focus {
   color: #ff4444;
 }
 
+.search-container {
+  margin-bottom: 1.5em;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .search {
   display: flex;
   align-items: center;
   background-color: rgb(233, 233, 233);
   border-radius: 10px;
   padding: 5px;
-  margin-bottom: 1.5em;
   position: relative;
+  flex: 1;
 }
 
 .search input {
@@ -658,6 +665,72 @@ textarea:focus {
 
 .clear-icon:hover {
   color: #666;
+}
+
+.search-mode-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.search-mode-button {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.8rem;
+  background-color: rgb(233, 233, 233);
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.search-mode-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+  border-color: #bbb;
+}
+
+.search-mode-button.active {
+  background-color: #67d7cc;
+  border-color: #4ecdc4;
+  color: #333;
+}
+
+.search-mode-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-indicator {
+  animation: pulse-dots 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dots {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.dark-mode .search-container {
+  color: #ffffff;
+}
+
+.dark-mode .search-mode-button {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
+  color: #ffffff;
+}
+
+.dark-mode .search-mode-button:hover:not(:disabled) {
+  background-color: #3a3a3a;
+  border-color: #5a5a5a;
+}
+
+.dark-mode .search-mode-button.active {
+  background-color: #67d7cc;
+  border-color: #4ecdc4;
+  color: #333;
 }
 
 .warning {
@@ -721,4 +794,226 @@ textarea:focus {
 
 .dark-mode .loading {
   color: #ccc;
+}
+
+/* Note Clickable Styles */
+.note.clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.note-expand-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.dark-mode .note-expand-hint {
+  color: #aaa;
+}
+
+/* Note Modal Overlay */
+.note-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.note-modal-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.note-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
+
+.note-modal-category-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.note-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pin-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background-color: #ffd700;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-icon {
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s ease;
+  padding: 0.3rem;
+  border-radius: 4px;
+}
+
+.close-icon:hover {
+  color: #333;
+  background-color: #e0e0e0;
+}
+
+.note-modal-body {
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.note-modal-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  line-height: 1.3;
+}
+
+.note-modal-text {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #555;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin-bottom: 2rem;
+}
+
+.note-modal-footer {
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.note-modal-date {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+/* Dark Mode Modal Styles */
+.dark-mode .note-modal-content {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+.dark-mode .note-modal-header {
+  background-color: #3a3a3a;
+  border-bottom-color: #4a4a4a;
+}
+
+.dark-mode .note-modal-title {
+  color: #ffffff;
+}
+
+.dark-mode .note-modal-text {
+  color: #e0e0e0;
+}
+
+.dark-mode .note-modal-footer {
+  border-top-color: #4a4a4a;
+}
+
+.dark-mode .note-modal-date {
+  color: #aaa;
+}
+
+.dark-mode .close-icon {
+  color: #aaa;
+}
+
+.dark-mode .close-icon:hover {
+  color: #ffffff;
+  background-color: #4a4a4a;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .note-modal-content {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+  
+  .note-modal-header {
+    padding: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .note-modal-body {
+    padding: 1.5rem;
+  }
+  
+  .note-modal-title {
+    font-size: 1.5rem;
+  }
+  
+  .note-modal-text {
+    font-size: 1rem;
+  }
+  
+  .note-modal-actions {
+    gap: 0.5rem;
+  }
 }

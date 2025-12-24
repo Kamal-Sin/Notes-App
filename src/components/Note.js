@@ -10,12 +10,20 @@ const Note = React.memo(({
   isPinned, 
   handleDeleteNote, 
   handleTogglePin, 
-  handleUpdateCategory 
+  handleUpdateCategory,
+  onNoteClick
 }) => {
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [tempCategory, setTempCategory] = useState(category);
   
   const categories = ['Work', 'Personal', 'Ideas', 'Tasks', 'Important'];
+  
+  // Truncate text for preview (show first 150 characters)
+  const MAX_PREVIEW_LENGTH = 150;
+  const truncatedText = text.length > MAX_PREVIEW_LENGTH 
+    ? text.substring(0, MAX_PREVIEW_LENGTH) + '...' 
+    : text;
+  const isTruncated = text.length > MAX_PREVIEW_LENGTH;
 
   const handleCategorySave = () => {
     handleUpdateCategory(id, tempCategory);
@@ -38,8 +46,22 @@ const Note = React.memo(({
     return colors[cat] || '#95a5a6';
   };
 
+  const handleNoteClick = (e) => {
+    // Don't trigger if clicking on action buttons or category edit
+    if (e.target.closest('.note-actions') || e.target.closest('.category-edit') || e.target.closest('.edit-category-icon')) {
+      return;
+    }
+    if (onNoteClick) {
+      onNoteClick();
+    }
+  };
+
   return(
-    <div className={`note ${isPinned ? 'pinned' : ''}`} data-category={category}>
+    <div 
+      className={`note ${isPinned ? 'pinned' : ''} ${onNoteClick ? 'clickable' : ''}`} 
+      data-category={category}
+      onClick={onNoteClick ? handleNoteClick : undefined}
+    >
       {isPinned && (
         <div className="pin-indicator">
           <MdPushPin size="1.2em" />
@@ -81,7 +103,8 @@ const Note = React.memo(({
       </div>
 
       <h3 className="note-title">{title}</h3>
-      <span className="note-text">{text}</span>
+      <span className="note-text">{truncatedText}</span>
+      {isTruncated && <span className="note-expand-hint">Click to view full note</span>}
       
       <div className="note-footer">
         <small>{date}</small>

@@ -11,7 +11,8 @@ const NotesList = ({
   sortBy,
   setSortBy,
   selectedCategory,
-  setSelectedCategory
+  setSelectedCategory,
+  onNoteClick
 }) => {
   const categories = ['All', 'Work', 'Personal', 'Ideas', 'Tasks', 'Important'];
 
@@ -61,6 +62,7 @@ const NotesList = ({
         handleDeleteNote={handleDeleteNote}
         handleTogglePin={handleTogglePin}
         handleUpdateCategory={handleUpdateCategory}
+        onNoteClick={() => onNoteClick(note)}
         />
         ))}
         <AddNote handleAddNote={handleAddNote} />

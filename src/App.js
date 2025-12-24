@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import NotesList from './components/NotesList';
 import Search from './components/Search';
 import Header from './components/Header';
+import NoteModal from './components/NoteModal';
+import { generateEmbedding, cosineSimilarity } from './services/aiService';
 const App = () => {
   const [notes, setNotes] = useState([]);
 
@@ -13,6 +15,10 @@ const [isLoading, setIsLoading] = useState(true);
 const [error, setError] = useState(null);
 const [sortBy, setSortBy] = useState('date'); // 'date', 'title', 'category'
 const [selectedCategory, setSelectedCategory] = useState('All');
+const [useSemanticSearch, setUseSemanticSearch] = useState(false);
+const [searchEmbedding, setSearchEmbedding] = useState(null);
+const [isGeneratingEmbedding, setIsGeneratingEmbedding] = useState(false);
+const [selectedNote, setSelectedNote] = useState(null);
 
 useEffect(() => {
   try {
@@ -21,7 +27,37 @@ useEffect(() => {
     );
 
     if(savedNotes) {
-      setNotes(savedNotes);
+      // Ensure all notes have embedding field (for backward compatibility)
+      const notesWithEmbeddings = savedNotes.map(note => ({
+        ...note,
+        embedding: note.embedding || null
+      }));
+      setNotes(notesWithEmbeddings);
+      
+      // Generate embeddings for existing notes that don't have them (background process)
+      if (process.env.REACT_APP_GEMINI_API_KEY) {
+        notesWithEmbeddings.forEach((note, index) => {
+          if (!note.embedding && note.text) {
+            // Stagger the requests to avoid rate limiting
+            setTimeout(() => {
+              const combinedText = `${note.title || ''} ${note.text}`.trim();
+              if (combinedText) {
+                generateEmbedding(combinedText).then(embedding => {
+                  if (embedding) {
+                    setNotes(prevNotes => 
+                      prevNotes.map(n => 
+                        n.id === note.id ? { ...n, embedding } : n
+                      )
+                    );
+                  }
+                }).catch(err => {
+                  console.error('Error generating embedding for existing note:', err);
+                });
+              }
+            }, index * 200); // 200ms delay between requests
+          }
+        });
+      }
     }
   } catch (err) {
     setError('Failed to load saved notes');
@@ -40,7 +76,7 @@ useEffect(() => {
   }
 }, [notes]);
 
-const addNote = useCallback((title, text, category = 'Personal') => {
+const addNote = useCallback(async (title, text, category = 'Personal') => {
   const date = new Date();
   const newNote = {
     id: nanoid(),
@@ -48,8 +84,26 @@ const addNote = useCallback((title, text, category = 'Personal') => {
     text: text,
     date: date.toLocaleDateString(),
     category: category,
-    isPinned: false
+    isPinned: false,
+    embedding: null // Will be generated asynchronously if semantic search is enabled
   }
+  
+  // Generate embedding for semantic search (async, non-blocking)
+  if (process.env.REACT_APP_GEMINI_API_KEY) {
+    const combinedText = `${title} ${text}`;
+    generateEmbedding(combinedText).then(embedding => {
+      if (embedding) {
+        setNotes(prevNotes => 
+          prevNotes.map(note => 
+            note.id === newNote.id ? { ...note, embedding } : note
+          )
+        );
+      }
+    }).catch(err => {
+      console.error('Error generating embedding for new note:', err);
+    });
+  }
+  
   const newNotes = [...notes, newNote];
   setNotes(newNotes);
 }, [notes]);
@@ -73,11 +127,62 @@ const updateNoteCategory = useCallback((id, category) => {
   setNotes(newNotes);
 }, [notes]);
 
+  // Generate embedding for search query
+useEffect(() => {
+  const generateSearchEmbedding = async () => {
+    if (!useSemanticSearch || !searchText.trim() || !process.env.REACT_APP_GEMINI_API_KEY) {
+      setSearchEmbedding(null);
+      return;
+    }
+
+    setIsGeneratingEmbedding(true);
+    try {
+      const embedding = await generateEmbedding(searchText);
+      setSearchEmbedding(embedding);
+    } catch (error) {
+      console.error('Error generating search embedding:', error);
+      setSearchEmbedding(null);
+    } finally {
+      setIsGeneratingEmbedding(false);
+    }
+  };
+
+  // Debounce embedding generation
+  const timeoutId = setTimeout(() => {
+    generateSearchEmbedding();
+  }, 500);
+
+  return () => clearTimeout(timeoutId);
+}, [searchText, useSemanticSearch]);
+
 const getFilteredAndSortedNotes = useCallback(() => {
-  let filteredNotes = notes.filter((note) => 
-    note.text.toLowerCase().includes(searchText.toLowerCase()) ||
-    note.title.toLowerCase().includes(searchText.toLowerCase())
-  );
+  let filteredNotes = notes;
+
+  // Apply search filter
+  if (searchText.trim()) {
+    if (useSemanticSearch && searchEmbedding) {
+      // Semantic search: calculate similarity scores
+      filteredNotes = notes.map(note => {
+        if (!note.embedding) {
+          // Fallback to keyword search if no embedding
+          const matchesKeyword = 
+            note.text.toLowerCase().includes(searchText.toLowerCase()) ||
+            note.title.toLowerCase().includes(searchText.toLowerCase());
+          return { ...note, similarity: matchesKeyword ? 0.5 : 0 };
+        }
+        
+        const similarity = cosineSimilarity(searchEmbedding, note.embedding);
+        return { ...note, similarity };
+      }).filter(note => note.similarity > 0.3) // Threshold for relevance
+        .sort((a, b) => b.similarity - a.similarity); // Sort by similarity
+    } else {
+      // Keyword search
+      filteredNotes = notes.filter((note) => 
+        note.text.toLowerCase().includes(searchText.toLowerCase()) ||
+        note.title.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+  }
 
   // Filter by category
   if (selectedCategory !== 'All') {
@@ -92,6 +197,11 @@ const getFilteredAndSortedNotes = useCallback(() => {
 
   const sortNotes = (notesToSort) => {
     return notesToSort.sort((a, b) => {
+      // If semantic search is active, preserve similarity order
+      if (useSemanticSearch && searchText.trim() && a.similarity !== undefined) {
+        return b.similarity - a.similarity;
+      }
+      
       switch (sortBy) {
         case 'title':
           return a.title.localeCompare(b.title);
@@ -105,13 +215,18 @@ const getFilteredAndSortedNotes = useCallback(() => {
   };
 
   return [...sortNotes(pinnedNotes), ...sortNotes(unpinnedNotes)];
-}, [notes, searchText, selectedCategory, sortBy]);
+}, [notes, searchText, selectedCategory, sortBy, useSemanticSearch, searchEmbedding]);
 
   return ( 
     <div className={`${darkMode && 'dark-mode'}`}>
       <div className="container">
       <Header handleToggleDarkMode={setDarkMode} />
-      <Search handleSearchNote={setSearchText}/>
+      <Search 
+        handleSearchNote={setSearchText}
+        useSemanticSearch={useSemanticSearch}
+        setUseSemanticSearch={setUseSemanticSearch}
+        isGeneratingEmbedding={isGeneratingEmbedding}
+      />
       
       {error && (
         <div className="error-message">
@@ -133,6 +248,17 @@ const getFilteredAndSortedNotes = useCallback(() => {
           setSortBy={setSortBy}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
+          onNoteClick={setSelectedNote}
+        />
+      )}
+      
+      {selectedNote && (
+        <NoteModal
+          note={selectedNote}
+          onClose={() => setSelectedNote(null)}
+          onDelete={deleteNote}
+          onTogglePin={togglePinNote}
+          onUpdateCategory={updateNoteCategory}
         />
       )}
       </div>

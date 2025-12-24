@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { MdMic, MdMicOff } from 'react-icons/md';
+import { generateTitle } from '../services/aiService';
 
 const AddNote = ({ handleAddNote }) => {
   const [noteTitle, setNoteTitle] = useState('');
@@ -10,6 +11,7 @@ const AddNote = ({ handleAddNote }) => {
   const [isSupported, setIsSupported] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [interimText, setInterimText] = useState('');
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
   const noteTextRef = useRef(noteText);
@@ -17,7 +19,7 @@ const AddNote = ({ handleAddNote }) => {
   const lastProcessedIndexRef = useRef(-1);
   const retryCountRef = useRef(0);
   const titleCharacterLimit = 50;
-  const textCharacterLimit = 200;
+  const textCharacterLimit = 1000;
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -245,10 +247,25 @@ const AddNote = ({ handleAddNote }) => {
     }
   };
 
-  const handleSaveClick = () => {
+  const handleSaveClick = async () => {
     if(noteText.trim().length > 0){
-        const title = noteTitle.trim().length > 0 ? noteTitle : 'Untitled Note';
-        handleAddNote(title, noteText, selectedCategory)
+        let title = noteTitle.trim();
+        
+        // Auto-generate title if empty
+        if (title.length === 0) {
+          setIsGeneratingTitle(true);
+          try {
+            title = await generateTitle(noteText);
+            setNoteTitle(title);
+          } catch (error) {
+            console.error('Error generating title:', error);
+            title = 'Untitled Note';
+          } finally {
+            setIsGeneratingTitle(false);
+          }
+        }
+        
+        handleAddNote(title || 'Untitled Note', noteText, selectedCategory)
         setNoteTitle('');
         setNoteText('');
         // Re-focus after saving
@@ -380,9 +397,9 @@ const AddNote = ({ handleAddNote }) => {
       <button 
         className="save" 
         onClick={handleSaveClick}
-        disabled={noteText.trim().length === 0}
+        disabled={noteText.trim().length === 0 || isGeneratingTitle}
       >
-        Save
+        {isGeneratingTitle ? 'Generating...' : 'Save'}
       </button>
     </div>
   </div>
